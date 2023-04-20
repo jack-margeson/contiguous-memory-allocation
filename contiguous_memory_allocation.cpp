@@ -49,8 +49,9 @@ void terminal(Allocator &allocator)
     }
 }
 
-void parseCommand(bool &active, Allocator &allocator, string command) {
-if (command == "HELP")
+void parseCommand(bool &active, Allocator &allocator, string command)
+{
+    if (command == "HELP")
     {
         cout << "\nList of commands:\n"
              << "HELP    - Displays this help message.\n"
@@ -80,6 +81,10 @@ if (command == "HELP")
         try
         {
             int result = allocator.requestMemory(command);
+            if (result == 0)
+            {
+                cout << "Memory successfully allocated.\n";
+            }
         }
         catch (invalid_argument &e)
         {
@@ -91,6 +96,25 @@ if (command == "HELP")
         try
         {
             int result = allocator.releaseMemory(command);
+            if (result == 0)
+            {
+                cout << "Memory successfully deallocated.\n";
+            }
+        }
+        catch (invalid_argument &e)
+        {
+            cout << e.what() << "\n";
+        }
+    }
+    else if (command.rfind("C", 0) == 0)
+    {
+        try
+        {
+            int result = allocator.compactMemory(command);
+            if (result == 0)
+            {
+                cout << "Memory successfully compacted.\n";
+            }
         }
         catch (invalid_argument &e)
         {

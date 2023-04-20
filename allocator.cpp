@@ -37,6 +37,18 @@ int Allocator::requestMemory(string command)
     string allocateMode = argv[3];
     long int freeMemory = getFreeMemory();
 
+    // Check if a process with the same ID is currently assigned.
+    for (vector<int> block : getContiguousMemory())
+    {
+        if (memory.at(block.at(0)) == process)
+        {
+            string s = "There is already memory allocated to a process with ID P";
+            s.append(1, (unsigned char)((int)process - 1));
+            s += ". Please specify a new process ID.";
+            throw invalid_argument(s);
+            return -1;
+        }
+    }
     // Check if we have enough free memory for the request.
     if (size <= freeMemory)
     {
@@ -55,6 +67,7 @@ int Allocator::requestMemory(string command)
             else
             {
                 throw invalid_argument("There is not a contiguous space in memory free for the allocation. Please compact and try again.");
+                return -1;
             }
         }
         else if (allocateMode == "B")
@@ -69,11 +82,13 @@ int Allocator::requestMemory(string command)
         {
             // Invalid allocation mode.
             throw invalid_argument("Invalid allocation mode.");
+            return -1;
         }
     }
     else
     {
         throw invalid_argument("Not enough free memory to allocate " + to_string(size) + " bytes (free memory: " + to_string(freeMemory) + " bytes).");
+        return -1;
     }
 
     return 0;
@@ -92,7 +107,28 @@ int Allocator::releaseMemory(string command)
         return -1;
     }
 
-    return 0;
+    // Define parts of the command.
+    unsigned char process = (unsigned char)((int)argv[1].at(1) + 1);
+
+    // For each block of memory, if the process number matches, delete that block of memory.
+    for (vector<int> block : getContiguousMemory())
+    {
+        if (memory.at(block.at(0)) == process)
+        {
+            // Delete starting from start of block to end of block.
+            for (int i = block.at(0); i <= block.at(1); i++)
+            {
+                memory.at(i) = 0U;
+            }
+            return 0;
+        }
+    }
+
+    string s = "Memory with process ID P";
+    s.append(1, (unsigned char)((int)process - 1));
+    s += " was not found.";
+    throw invalid_argument(s);
+    return -1;
 }
 
 int Allocator::compactMemory(string command)
@@ -107,6 +143,31 @@ int Allocator::compactMemory(string command)
     {
         throw e;
         return -1;
+    }
+
+    // Get the total size of unallocated memory.
+    long int free = getFreeMemory();
+
+    // Move all blocks of memory that are not free to the front of the memory space.
+    long int front = 0;
+    for (vector<int> block : getContiguousMemory())
+    {
+        if (memory.at(block.at(0)) != 0)
+        {
+            // Get size of current block of memory.
+            long int size = block.at(1) - block.at(0) + 1;
+            // Move to front of memory space.
+            for (int i = front; i < front + size; i++)
+            {
+                memory.at(i) = memory.at(block.at(0));
+            }
+            front += size;
+        }
+    }
+    // Set the last part of memory to the total unallocated size.
+    for (int i = front; i < free; i++)
+    {
+        memory.at(i) = 0U;
     }
 
     return 0;
@@ -136,16 +197,16 @@ vector<string> Allocator::parseCommand(string command)
 
     if (argv[0] == "RQ")
     {
-        if (argv.size() != 4)
+        if (argv.size() != 4 || argv.at(1).size() != 2 || argv.at(3).size() != 1)
         {
-            throw invalid_argument("Invalid number of arguments for process memory allocation.");
+            throw invalid_argument("Invalid number or format of arguments for process memory allocation.");
         }
     }
     else if (argv[0] == "RL")
     {
-        if (argv.size() != 2)
+        if (argv.size() != 2 || argv.at(1).size() != 2)
         {
-            throw invalid_argument("Invalid number of arguments for process release.");
+            throw invalid_argument("Invalid number of arguments or format for process release.");
         }
     }
     else if (argv[0] == "C")
