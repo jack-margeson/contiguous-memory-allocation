@@ -18,5 +18,7 @@ class Allocator
         // Helper functions 
         vector<string> parseCommand(string command);
         long int getFreeMemory();
-        string getContiguousMemory();
+        vector<vector<int>> getContiguousMemory();
+        string getContiguousMemoryString();
+        int findFirst(long int size);
 };

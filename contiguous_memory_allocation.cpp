@@ -59,7 +59,7 @@ if (command == "HELP")
              << "RQ      - Request memory.\n"
              << "\tex: RQ P0 2048 W, requests 2048 bytes from the\n"
              << "\tshared maximum memory for process ID 0, in W mode.\n"
-             << "\t\tModes: F (first fit), B (best fit), W (worst fit)\n"
+             << "\tModes: F (first fit), B (best fit), W (worst fit)\n"
              << "RL      - Release memory by process ID.\n"
              << "\tex: RL P0, releases all memory from the\n"
              << "\trespective process ID.\n"

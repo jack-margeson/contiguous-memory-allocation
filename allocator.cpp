@@ -1,4 +1,5 @@
 #include <vector>
+#include <iostream>
 #include <string>
 #include <sstream>
 #include <stdexcept>
@@ -28,6 +29,51 @@ int Allocator::requestMemory(string command)
     {
         throw e;
         return -1;
+    }
+
+    // Define parts of the command.
+    unsigned char process = (unsigned char)((int)argv[1].at(1) + 1);
+    long int size = stoi(argv[2]);
+    string allocateMode = argv[3];
+    long int freeMemory = getFreeMemory();
+
+    // Check if we have enough free memory for the request.
+    if (size <= freeMemory)
+    {
+        // Switch functionality depending on mode specified.
+        if (allocateMode == "F")
+        {
+            int first = findFirst(size);
+            if (first != -1)
+            {
+                // Allocate to first.
+                for (int i = first; i < (first + size); i++)
+                {
+                    memory.at(i) = process;
+                }
+            }
+            else
+            {
+                throw invalid_argument("There is not a contiguous space in memory free for the allocation. Please compact and try again.");
+            }
+        }
+        else if (allocateMode == "B")
+        {
+            // Allocate to best.
+        }
+        else if (allocateMode == "W")
+        {
+            // Allocate to worst.
+        }
+        else
+        {
+            // Invalid allocation mode.
+            throw invalid_argument("Invalid allocation mode.");
+        }
+    }
+    else
+    {
+        throw invalid_argument("Not enough free memory to allocate " + to_string(size) + " bytes (free memory: " + to_string(freeMemory) + " bytes).");
     }
 
     return 0;
@@ -73,7 +119,7 @@ string Allocator::getMemoryStatus()
     s += "Memory free for allocation: " + to_string(getFreeMemory()) + " bytes\n";
     s += "Current allocations by process ID:\n";
     s += "----------------------------------\n";
-    s += getContiguousMemory();
+    s += getContiguousMemoryString();
     return s;
 }
 
@@ -126,30 +172,73 @@ long int Allocator::getFreeMemory()
     return free;
 }
 
-string Allocator::getContiguousMemory() {
-    string s = "";
+vector<vector<int>> Allocator::getContiguousMemory()
+{
+    vector<vector<int>> memoryBlocks;
 
     long int start;
     long int end;
-    
-    for (int i = 0; i < memory.size(); i ++) {
-        if (i != 0) {
-            if (memory.at(i) != memory.at(i-1)) {
+    for (int i = 0; i < memory.size(); i++)
+    {
+        if (i != 0)
+        {
+            if (memory.at(i) != memory.at(i - 1))
+            {
                 end = i - 1;
-                if (memory.at(i) == 0U) {
-                    s += "Addresses [" + to_string(start) + ":" + to_string(end) + "], unallocated\n";
-                } else {
-                    s += "Addresses [" + to_string(start) + ":" + to_string(end) + "], process P" + to_string(int(memory.at(i))-1) + "\n";
-                }
+                vector<int> block;
+                block.push_back(start);
+                block.push_back(end);
+                memoryBlocks.push_back(block);
+
                 start = i;
             }
-        } else {
+            else if (i == memory.size() - 1)
+            {
+                end = memory.size();
+                vector<int> block;
+                block.push_back(start);
+                block.push_back(end);
+                memoryBlocks.push_back(block);
+            }
+        }
+        else
+        {
             start = 0;
         }
     }
 
-    if (s == "") {
-        s = "Addresses [0:" + to_string(memory.size()) + "], unallocated\n";
+    return memoryBlocks;
+}
+
+string Allocator::getContiguousMemoryString()
+{
+    string s = "";
+
+    for (vector<int> block : getContiguousMemory())
+    {
+        // This block is unallocated space.
+        if (memory.at(block.at(0)) == 0)
+        {
+            s += "Addresses [" + to_string(block.at(0)) + ":" + to_string(block.at(1)) + "], unallocated\n";
+        }
+        else
+        { // Block space is allocated.
+            s += "Addresses [" + to_string(block.at(0)) + ":" + to_string(block.at(1)) + "], process P" + char(int(memory.at(block.at(0))) - 1) + "\n";
+        }
     }
+
     return s;
+}
+
+int Allocator::findFirst(long int size)
+{
+    for (vector<int> block : getContiguousMemory())
+    {
+        if (memory.at(block.at(0)) == 0 && block.at(1) - block.at(0) >= size)
+        {
+            return block.at(0);
+        }
+    }
+
+    return -1;
 }
