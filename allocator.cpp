@@ -73,10 +73,38 @@ int Allocator::requestMemory(string command)
         else if (allocateMode == "B")
         {
             // Allocate to best.
+            int best = findBest(size);
+            if (best != -1)
+            {
+                // Allocate to first.
+                for (int i = best; i < (best + size); i++)
+                {
+                    memory.at(i) = process;
+                }
+            }
+            else
+            {
+                throw invalid_argument("There is not a contiguous space in memory free for the allocation. Please compact and try again.");
+                return -1;
+            }
         }
         else if (allocateMode == "W")
         {
             // Allocate to worst.
+            int worst = findWorst(size);
+            if (worst != -1)
+            {
+                // Allocate to worst.
+                for (int i = worst; i < (worst + size); i++)
+                {
+                    memory.at(i) = process;
+                }
+            }
+            else
+            {
+                throw invalid_argument("There is not a contiguous space in memory free for the allocation. Please compact and try again.");
+                return -1;
+            }
         }
         else
         {
@@ -302,4 +330,50 @@ int Allocator::findFirst(long int size)
     }
 
     return -1;
+}
+
+int Allocator::findBest(long int size)
+{
+    long int best = -1;
+    long int diff = memory.size();
+
+    for (vector<int> block : getContiguousMemory())
+    {
+        // If the memory block we're looking at is currently unallocated...
+        if (memory.at(block.at(0)) == 0)
+        {
+            // check and see if the size is greater or equal to our currently best size...
+            int blockSize = block.at(1) - block.at(0) + 1;
+            if (blockSize >= size && blockSize - size < diff)
+            {
+                best = block.at(0);
+                diff = blockSize - size;
+            }
+        }
+    }
+
+    return best;
+}
+
+int Allocator::findWorst(long int size)
+{
+    long int worst = -1;
+    long int diff = 0;
+
+    for (vector<int> block : getContiguousMemory())
+    {
+        // If the memory block we're looking at is currently unallocated...
+        if (memory.at(block.at(0)) == 0)
+        {
+            // check and see if the size is less than our currently worst size...
+            int blockSize = block.at(1) - block.at(0) + 1;
+            if (blockSize >= size && blockSize - size > diff)
+            {
+                worst = block.at(0);
+                diff = blockSize - size;
+            }
+        }
+    }
+
+    return worst;
 }
